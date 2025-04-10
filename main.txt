@@ -1,0 +1,43 @@
+import os
+from aiohttp import web
+from dotenv import load_dotenv
+from botbuilder.core import BotFrameworkAdapter, BotFrameworkAdapterSettings
+from botbuilder.schema import Activity
+from bot import QnABot
+
+load_dotenv()
+
+app_id = os.getenv("MicrosoftAppId", "")
+app_password = os.getenv("MicrosoftAppPassword", "")
+adapter_settings = BotFrameworkAdapterSettings(app_id, app_password)
+adapter = BotFrameworkAdapter(adapter_settings)
+
+bot = QnABot()
+
+async def messages(req):
+    body = await req.json()
+    activity = Activity().deserialize(body)
+    auth_header = req.headers.get("Authorization", "")
+    response = await adapter.process_activity(activity, auth_header, bot.on_turn)
+    return web.Response(status=200)
+
+# Add a health check endpoint
+async def health(req):
+    return web.Response(text="Health check passed!")
+
+app = web.Application()
+app.router.add_post("/api/messages", messages)
+app.router.add_get("/", health)
+
+if __name__ == "__main__":
+    PORT = int(os.environ.get("PORT", 3978))
+    
+    # Detect environment
+    # Check if running in Azure by looking for common Azure environment variables
+    is_azure = os.environ.get("WEBSITE_SITE_NAME") is not None
+    
+    # Use appropriate host based on environment
+    HOST = "0.0.0.0" if is_azure else "localhost"
+    
+    print(f"Bot server running on {HOST}:{PORT}")
+    web.run_app(app, host=HOST, port=PORT)
