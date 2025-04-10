@@ -2,4 +2,6 @@ aiohttp
 botbuilder-core 
 requests 
 python-dotenv
-gunicorn
+gunicorn   
+uvicorn
+fastapi
